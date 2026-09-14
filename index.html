@@ -1,0 +1,1084 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ARCSCII TERMINAL RUN v.1</title>
+<link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden}
+body{background:#000;color:#2F4D6F;font-family:'VT323',monospace;font-size:26px;line-height:1.25;}
+#arcGameMatrix{
+  position:fixed;inset:0;width:100%;height:100%;z-index:0;opacity:.16;
+}
+.arcGame{
+  position:relative;z-index:2;width:100%;height:100%;
+  display:flex;align-items:center;justify-content:center;padding:18px;
+}
+.arcGameWindow{
+  position:relative;width:min(1100px,100%);height:min(720px,100%);
+  border:2px solid #2F4D6F;background:rgba(0,0,0,.88);
+  box-shadow:0 0 30px rgba(47,77,111,.18),inset 0 0 40px rgba(47,77,111,.04);
+  overflow:hidden;
+}
+.arcGameHeader{
+  height:58px;border-bottom:2px solid #2F4D6F;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 18px;letter-spacing:2px;
+}
+.arcGameTitle{font-size:30px}
+.arcGameHud{display:flex;gap:28px;font-size:22px}
+.arcGameHud span{color:#2F4D6F}
+.arcGameHud b{color:#79a4d3;font-weight:normal}
+.arcGameCanvas{
+  position:absolute;left:0;right:0;top:58px;bottom:0;
+  overflow:hidden;
+}
+.arcGameStart,.arcGameOver{
+  position:absolute;inset:0;z-index:20;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(0,0,0,.88);text-align:center;padding:25px;
+}
+.arcGameCard{max-width:700px}
+.arcGameBig{font-size:48px;letter-spacing:3px;color:#79a4d3}
+.arcGameText{font-size:23px;line-height:1.35;margin:18px 0}
+.arcGameButton{
+  display:inline-block;border:2px solid #2F4D6F;background:#000;
+  color:#79a4d3;padding:9px 24px;font:inherit;font-size:24px;
+  cursor:pointer;letter-spacing:2px;
+}
+.arcGameButton:hover{background:#2F4D6F;color:#000}
+.arcGameButton.tweet-result{border-color:#35ff69;color:#35ff69}
+.arcGameButton.tweet-result:hover{background:#35ff69;color:#000}
+.arcGameButton.quit-game{border-color:#ff3030;color:#ff3030}
+.arcGameButton.quit-game:hover{background:#ff3030;color:#000}
+.arcGameChoose{
+  position:absolute;inset:0;z-index:21;display:none;
+  align-items:center;justify-content:center;background:rgba(0,0,0,.94);
+  text-align:center;padding:22px;overflow:auto;
+}
+.arcGameChooseCard{width:min(950px,100%);max-height:100%;overflow:auto;overscroll-behavior:contain}
+.arcGameChooseTitle{font-size:42px;color:#79a4d3;letter-spacing:3px;margin-bottom:8px}
+.arcGameChooseSub{font-size:21px;margin-bottom:20px;opacity:.8}
+.arcCharacterGrid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin:16px 0 22px;overflow:visible}
+.arcCharacterOption{border:2px solid rgba(47,77,111,.55);background:rgba(0,0,0,.75);padding:12px 8px;cursor:pointer;min-height:175px;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:.15s}
+.arcCharacterOption:hover{border-color:#79a4d3;transform:translateY(-3px)}
+.arcCharacterOption.selected{border-color:#fff;box-shadow:0 0 18px rgba(121,164,211,.28),inset 0 0 12px rgba(255,255,255,.05);background:rgba(47,77,111,.12)}
+.arcGameChooseHint{font-size:18px;opacity:.65;margin:-8px 0 14px}
+@media(min-width:801px){.arcGameChooseHint.mobile-only{display:none}}
+@media(max-width:800px){.arcGameChoose{align-items:flex-start;padding:18px 12px}.arcGameChooseCard{padding:8px 0 20px;overflow-y:auto;max-height:100%;-webkit-overflow-scrolling:touch}.arcCharacterGrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:14px 0 20px}.arcCharacterOption{min-height:155px}.arcGameChooseHint.desktop-only{display:none}}
+.arcCharacterPreview{font-size:20px;line-height:.88;white-space:pre;text-shadow:0 0 10px currentColor;margin-bottom:12px}
+.arcCharacterName{font-size:21px;letter-spacing:1px;font-weight:700;text-shadow:0 0 8px currentColor}
+.arcCharacterColor{font-size:16px;opacity:.7;margin-top:4px}
+.char-red{color:#ff3030}.char-white{color:#fff}.char-pink{color:#ff4fa3}.char-green{color:#35ff69}.char-yellow{color:#ffd92f}
+.arcGamePlayer.char-red{color:#ff3030}.arcGamePlayer.char-white{color:#fff}.arcGamePlayer.char-pink{color:#ff4fa3}.arcGamePlayer.char-green{color:#35ff69}.arcGamePlayer.char-yellow{color:#ffd92f}
+@media(max-width:800px){
+  .arcCharacterGrid{grid-template-columns:repeat(2,1fr)}
+  .arcGameChooseTitle{font-size:34px}
+  .arcCharacterOption{min-height:145px}
+}
+@media(max-width:420px){.arcCharacterGrid{grid-template-columns:1fr 1fr;gap:8px}.arcCharacterPreview{font-size:17px}.arcCharacterName{font-size:19px}}
+.arcGameWorld{position:absolute;inset:0}
+.arcGamePlayer{
+  position:absolute;z-index:8;left:90px;bottom:62px;
+  width:76px;height:76px;color:#79a4d3;
+  font-size:22px;line-height:.88;white-space:pre;
+  user-select:none;
+  transform-origin:50% 100%;
+  transition:transform .06s ease-out;
+}
+.arcGamePlayer.crouching{transform:scaleY(.42)}
+.arcGameGround{
+  position:absolute;left:0;right:0;bottom:40px;height:22px;
+  border-top:2px solid #2F4D6F;
+  background:repeating-linear-gradient(90deg,#2F4D6F 0 5px,transparent 5px 15px);
+  opacity:.7;
+}
+.arcGameObstacle{
+  position:absolute;z-index:6;bottom:62px;
+  color:#ff2b2b;white-space:pre;text-align:center;
+  font-size:30px;line-height:1;font-weight:bold;
+  letter-spacing:2px;
+  text-shadow:0 0 8px rgba(255,43,43,.45);
+  user-select:none;
+}
+.arcGameCoin{
+  position:absolute;z-index:7;bottom:135px;
+  color:#FFD700;font-size:32px;font-weight:bold;
+  text-shadow:0 0 10px rgba(255,215,0,.55);
+  user-select:none;
+}
+.arcGameJumpAid{
+  position:absolute;z-index:6;bottom:62px;
+  color:#35ff69;font-size:23px;font-weight:bold;
+  line-height:.9;white-space:pre;text-align:center;
+  text-shadow:0 0 9px rgba(53,255,105,.5);
+  user-select:none;
+}
+.arcGameHint{
+  position:absolute;left:18px;bottom:10px;font-size:17px;opacity:.75;font-family:'VT323',monospace;
+}
+.arcGame pre{font-family:'VT323',monospace;}
+.arcGameScan{
+  pointer-events:none;position:absolute;inset:0;z-index:30;
+  background:repeating-linear-gradient(to bottom,transparent 0,transparent 3px,rgba(255,255,255,.025) 4px);
+}
+.arcGameMobile{
+  display:none;position:absolute;z-index:40;bottom:60px;left:0;right:0;
+  justify-content:space-between;padding:0 20px;pointer-events:none;
+}
+.arcGameMobile button{
+  pointer-events:auto;width:58px;height:48px;border:2px solid #2F4D6F;
+  background:rgba(0,0,0,.75);color:#79a4d3;font:28px 'VT323';
+}
+@media(max-width:700px){
+  body{font-size:26px}
+  .arcGame{padding:0}
+  .arcGameWindow{height:100%;border-left:0;border-right:0}
+  .arcGameHeader{height:50px;padding:0 10px}
+  .arcGameTitle{font-size:23px}
+  .arcGameHud{gap:10px;font-size:17px}
+  .arcGameCanvas{top:50px}
+  .arcGamePlayer{left:45px}
+  .arcGameMobile{display:none !important}
+  .arcGameCanvas{touch-action:none}
+  .arcGameBig{font-size:37px}
+  .arcGameText{font-size:20px}
+}
+
+/* X LOGIN + LEADERBOARD */
+.arcLogin{position:absolute;inset:0;z-index:25;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.94);text-align:center;padding:22px;overflow:auto}
+.arcLoginCard{width:min(620px,100%);border:2px solid #2F4D6F;padding:28px;background:rgba(0,0,0,.92);box-shadow:0 0 30px rgba(47,77,111,.2)}
+.arcLoginTitle{font-size:42px;color:#79a4d3;letter-spacing:3px}
+.arcLoginSub{font-size:21px;margin:10px 0 22px;opacity:.8}
+.arcLoginInput{width:min(420px,100%);padding:10px 14px;border:2px solid #2F4D6F;background:#000;color:#79a4d3;font:24px 'VT323',monospace;text-align:center;outline:none}
+.arcLoginInput:focus{box-shadow:0 0 15px rgba(47,77,111,.3)}
+.arcUserStatus{margin:12px 0;font-size:19px;min-height:24px}
+.arcLeaderboard{margin:18px auto 20px;border:1px solid #2F4D6F;max-width:650px;text-align:left;background:rgba(0,0,0,.55);max-height:290px;overflow:auto}
+.arcLeaderboardTitle{padding:10px 14px;border-bottom:1px dashed rgba(47,77,111,.5);font-size:23px;color:#79a4d3}
+.arcLeaderboardRow{display:grid;grid-template-columns:55px 1fr auto;gap:10px;padding:8px 12px;border-bottom:1px dashed rgba(47,77,111,.2);font-size:20px}
+.arcLeaderboardRow:last-child{border-bottom:0}
+.arcLeaderboardRow.me{background:rgba(47,77,111,.16);color:#fff}
+.arcLoginNote{font-size:16px;opacity:.55;margin-top:15px;line-height:1.3}
+.arcTwitterButton{border-color:#79a4d3}
+@media(max-width:600px){.arcLoginTitle{font-size:34px}.arcLoginCard{padding:20px 14px}.arcLeaderboardRow{grid-template-columns:42px 1fr auto;font-size:18px}}
+</style>
+
+<script>
+function arcNormalizeUsername(name){
+  return String(name || '').trim().replace(/^@+/, '').toLowerCase();
+}
+
+function arcDisplayUsername(name){
+  return String(name || '').trim().replace(/^@+/, '').slice(0,24) || 'PLAYER';
+}
+
+function arcFormatPoints(value){
+  const n = Math.max(0, Number(value) || 0);
+  const units = [
+    [1e18,'E'],[1e15,'P'],[1e12,'T'],[1e9,'B'],[1e6,'M'],[1e3,'k']
+  ];
+  for(const [v,suffix] of units){
+    if(n >= v){
+      const x = n / v;
+      const decimals = x >= 100 ? 0 : x >= 10 ? 1 : 2;
+      return x.toFixed(decimals).replace(/\.0+$|(\.[0-9]*?)0+$/,'$1') + suffix;
+    }
+  }
+  return String(Math.floor(n));
+}
+
+function arcGetPointData(){
+  try{
+    return JSON.parse(localStorage.getItem('arcscII_point_accounts') || '{}');
+  }catch(e){ return {}; }
+}
+
+function arcSavePointData(data){
+  localStorage.setItem('arcscII_point_accounts', JSON.stringify(data));
+}
+
+function arcRecordPermanentPoints(username, earned){
+  const display = arcDisplayUsername(username);
+  const key = arcNormalizeUsername(display);
+  if(!key) return null;
+
+  const data = arcGetPointData();
+  if(!data[key]){
+    data[key] = {
+      username: display,
+      totalPoints: 0,
+      bestRun: 0,
+      gamesPlayed: 0,
+      verified: false
+    };
+  }
+
+  const points = Math.max(0, Number(earned) || 0);
+  data[key].totalPoints += points;
+  data[key].bestRun = Math.max(data[key].bestRun, points);
+  data[key].gamesPlayed += 1;
+
+  arcSavePointData(data);
+  return data[key];
+}
+
+function arcGetPermanentLeaderboard(){
+  return Object.values(arcGetPointData())
+    .sort((a,b) => b.totalPoints - a.totalPoints);
+}
+</script>
+
+
+<style id="arcUsernameWarningCSS">
+@media (max-width:600px){
+  #arcUsernameWarning{
+    margin:10px 0 14px !important;
+    padding:12px !important;
+    font-size:15px !important;
+  }
+}
+</style>
+
+
+<style id="arcLoginSocialsCSS">
+.arcLoginSocials{display:flex;align-items:center;justify-content:center;gap:14px;margin:13px 0 0;}
+.arcLoginSocials a{width:30px;height:30px;display:flex;align-items:center;justify-content:center;color:#fff;opacity:.82;transition:opacity .2s ease,transform .2s ease;}
+.arcLoginSocials a:hover{opacity:1;transform:translateY(-2px);}
+.arcLoginSocials svg{width:19px;height:19px;fill:currentColor;display:block;}
+.arcLoginSocials a:nth-child(2) svg{width:20px;height:20px;}
+</style>
+</head>
+<body>
+
+<canvas id="arcGameMatrix"></canvas>
+
+<div class="arcLogin" id="arcLogin">
+  <div class="arcLoginCard">
+    <div class="arcLoginTitle">PLAYER LOGIN</div>
+    <div class="arcLoginSub">&gt; ENTER YOUR X / TWITTER USERNAME TO ENTER THE TERMINAL</div>
+    
+<div id="arcUsernameWarning" style="
+  margin:14px auto 16px;
+  max-width:620px;
+  padding:14px 16px;
+  border:1px solid #2F4D6F;
+  background:rgba(47,77,111,.16);
+  color:#fff;
+  text-align:left;
+  font-family:'VT323',monospace;
+  font-size:18px;
+  line-height:1.25;
+  box-sizing:border-box;
+">
+  <div style="color:#35ff69;margin-bottom:7px;">⚠ USERNAME NOTICE</div>
+  <div>
+    PLEASE ENTER YOUR <b>REAL X / TWITTER USERNAME</b>.
+    YOUR USERNAME WILL BE USED AS YOUR PLAYER ID ON THE ARCSCII LEADERBOARD.
+  </div>
+  <div style="margin-top:7px;">
+    POINTS ARE SAVED UNDER THIS USERNAME. IF YOU ENTER A DIFFERENT USERNAME LATER,
+    EVEN IF IT DIFFERS BY ONE LETTER, YOUR PREVIOUS POINTS WILL NOT APPEAR.
+  </div>
+  <div style="margin-top:7px;color:#ffd84d;">
+    IMPORTANT: ENTER THE SAME X / TWITTER USERNAME YOU OWN.
+    FUTURE POINT CLAIMS MAY REQUIRE VERIFICATION THAT THE GAME USERNAME MATCHES YOUR X / TWITTER ACCOUNT.
+  </div>
+  <div style="margin-top:7px;color:#aaa;">
+    THIS GAME DOES NOT VERIFY YOUR X / TWITTER ACCOUNT DURING LOGIN.
+  </div>
+</div>
+
+<input class="arcLoginInput" placeholder="YOUR X/TWITTER USERNAME" aria-label="X/Twitter username" id="arcUsernameInput" maxlength="15" placeholder="ENTER @USERNAME" autocomplete="off" autofocus>
+    <div class="arcUserStatus" id="arcLoginStatus"></div>
+    <button class="arcGameButton" id="arcDemoLoginButton">[ ENTER TERMINAL ]</button>
+
+    <div class="arcLoginSocials" aria-label="ARCSCII links">
+      <a href="https://x.com/arcscii" target="_blank" rel="noopener noreferrer" aria-label="ARCSCII on X" title="X / Twitter">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.244 2H21.5l-7.11 8.126L22.75 22h-6.6l-5.17-6.76L5.06 22H1.8l7.61-8.7L1.25 2H8l4.67 6.17L18.244 2Zm-1.155 17.52h1.8L7.01 4.36H5.08L17.09 19.52Z"/></svg>
+      </a>
+      <a href="https://blog.arcscii.space" target="_blank" rel="noopener noreferrer" aria-label="ARCSCII website" title="ARCSCII Website">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9.25"/><path d="M2.75 12h18.5M12 2.75c2.35 2.5 3.55 5.58 3.55 9.25S14.35 18.75 12 21.25C9.65 18.75 8.45 15.67 8.45 12S9.65 5.25 12 2.75Z" fill="none"/></svg>
+      </a>
+    </div>
+
+    <div class="arcLoginNote">
+      Use your X / Twitter username so other players can recognize you on the leaderboard.<br>
+      Example: <b>@ARCSCII</b> → enter <b>ARCSCII</b><br>
+      Username is self-reported and is not verified by X.
+    </div>
+  </div>
+</div>
+
+<div class="arcGame">
+  <div class="arcGameWindow">
+    <div class="arcGameHeader">
+      <div class="arcGameTitle">ARCSCII TERMINAL RUN v.1</div>
+      <div class="arcGameHud">
+        <span>SCORE <b id="arcGameScore">000000</b></span>
+        <span>BEST <b id="arcGameBest">000000</b></span>
+        <span>SPEED <b id="arcGameSpeed">1.0</b></span><span>LVL <b id="arcGameLevel">EASY</b></span>
+      </div>
+    </div>
+
+    <div class="arcGameCanvas" id="arcGameCanvas">
+      <div class="arcGameWorld" id="arcGameWorld">
+        <pre class="arcGamePlayer char-red" id="arcGamePlayer"></pre>
+        <div class="arcGameGround"></div>
+        <div class="arcGameHint">SPACE / ↑ = JUMP &nbsp; ↓ = CROUCH &nbsp; ← → = MOVE</div>
+      </div>
+
+      <div class="arcGameMobile">
+        <button id="arcLeft">←</button>
+        <button id="arcJump">↑</button>
+        <button id="arcRight">→</button>
+      </div>
+
+      <div class="arcGameStart" id="arcGameStart">
+        <div class="arcGameCard">
+          <div class="arcGameBig">ARCSCII TERMINAL RUN</div>
+          <div class="arcGameText" id="arcBootText"></div>
+          <button class="arcGameButton" id="arcStartButton" disabled style="opacity:.45;cursor:not-allowed">[ START GAME ]</button>
+        </div>
+      </div>
+
+      <div class="arcGameChoose" id="arcGameChoose">
+        <div class="arcGameChooseCard">
+          <div class="arcGameChooseTitle">CHOOSE CHARACTERS</div>
+          <div class="arcGameChooseSub">&gt; SELECT YOUR TERMINAL RUNNER</div>
+          <div class="arcGameChooseHint desktop-only">&lt; LEFT / RIGHT &gt; TO CHOOSE &nbsp; • &nbsp; ENTER = SELECT</div>
+          <div class="arcGameChooseHint mobile-only">SCROLL TO BROWSE • TAP A CHARACTER TO SELECT</div>
+          <div class="arcCharacterGrid" id="arcCharacterGrid"></div>
+          <button class="arcGameButton" id="arcChooseRunButton">[ START RUN ]</button>
+        </div>
+      </div>
+
+      <div class="arcGameOver" id="arcGameOver" style="display:none">
+        <div class="arcGameCard">
+          <div class="arcGameBig">SYSTEM CRASHED</div>
+          <div class="arcGameText">
+            &gt; MEME ENGINE........ OVERLOAD<br>
+            &gt; FINAL SCORE: <span id="arcFinalScore">0</span><br>
+            &gt; BEST SCORE: <span id="arcFinalBest">0</span>
+          </div>
+          <div class="arcLeaderboard" id="arcLeaderboard">
+            <div class="arcLeaderboardTitle">[ PLAYER LEADERBOARD ]</div>
+            <div id="arcLeaderboardRows"></div>
+          </div>
+          <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+            <button class="arcGameButton" id="arcRestartButton">[ RUN AGAIN ]</button>
+            <button class="arcGameButton" id="arcChangeCharacterButton">[ CHANGE CHARACTER ]</button>
+            <button class="arcGameButton tweet-result" id="arcTweetResultButton">[ TWEET RESULT • EARN 1K POINTS ]</button>
+            <button class="arcGameButton quit-game" id="arcQuitButton">[ QUIT ]</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="arcGameScan"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  // PLAYER LOGIN / LEADERBOARD
+  // Simple self-reported X/Twitter username. No OAuth required.
+  const loginOverlay = document.getElementById('arcLogin');
+  const demoLoginButton = document.getElementById('arcDemoLoginButton');
+  const usernameInput = document.getElementById('arcUsernameInput');
+  const loginStatus = document.getElementById('arcLoginStatus');
+  const leaderboardRows = document.getElementById('arcLeaderboardRows');
+  let currentPlayer = localStorage.getItem('arcscII_player') || '';
+
+  function cleanUsername(v){
+    return String(v||'').trim().replace(/^@+/,'').replace(/[^a-zA-Z0-9_]/g,'').slice(0,15);
+  }
+
+  function leaderboardData(){
+    try{return JSON.parse(localStorage.getItem('arcscII_leaderboard')||'[]')}catch(e){return []}
+  }
+
+  function formatPoints(value){
+    const n=Math.max(0,Number(value)||0);
+    const units=[
+      [1e18,'E'],[1e15,'P'],[1e12,'T'],[1e9,'B'],[1e6,'M'],[1e3,'k']
+    ];
+    for(const [unit,suffix] of units){
+      if(n>=unit){
+        const v=n/unit;
+        // 1k, 1.2k, 10k, 100k, 1M, 1.5M, 1B, etc.
+        const decimals=v<10?1:0;
+        return v.toFixed(decimals).replace(/\.0$/,'')+suffix;
+      }
+    }
+    return String(Math.floor(n));
+  }
+
+  function saveLeaderboard(score){
+    if(!currentPlayer)return;
+    const list=leaderboardData();
+    const value=Math.max(0,Number(score)||0);
+    const existing=list.find(x=>x.username===currentPlayer);
+    if(existing){
+      // TOTAL POINTS: every completed run is permanently added to this player's total.
+      existing.points=Number(existing.points||existing.score||0)+value;
+      existing.best=Math.max(Number(existing.best||0),value);
+      existing.score=existing.points;
+    }else{
+      list.push({username:currentPlayer,points:value,best:value,score:value});
+    }
+    list.sort((a,b)=>Number(b.points||b.score||0)-Number(a.points||a.score||0));
+    localStorage.setItem('arcscII_leaderboard',JSON.stringify(list.slice(0,50)));
+  }
+
+  function renderLeaderboard(){
+    if(!leaderboardRows)return;
+    const list=leaderboardData();
+    if(!list.length){leaderboardRows.innerHTML='<div class="arcLeaderboardRow"><span>-</span><span>NO SCORES YET</span><span>0</span></div>';return;}
+    leaderboardRows.innerHTML=list.map((x,i)=>{
+      const total=Number(x.points||x.score||0);
+      return `<div class="arcLeaderboardRow ${x.username===currentPlayer?'me':''}"><span>#${i+1}</span><span>@${x.username}</span><span>${formatPoints(total)}</span></div>`;
+    }).join('');
+  }
+
+  const bootLines = [
+    'ARCSCII TERMINAL RUN',
+    '> INITIALIZING GAME ENGINE... OK',
+    '> LOADING ASCII WORLD... OK',
+    '> CONNECTING ARC CHAIN... OK',
+    '> MEME ENGINE........ ONLINE',
+    '> ALL CHARACTERS...... ONLINE',
+    '> READY TO WAR........ YES',
+    '> SYSTEM READY'
+  ];
+  let bootTimer=null;
+
+  function runBootSequence(){
+    if(!bootText || !startButton)return;
+    if(bootTimer)clearTimeout(bootTimer);
+    bootText.innerHTML='';
+    startButton.disabled=true;
+    startButton.style.opacity='.45';
+    startButton.style.cursor='not-allowed';
+
+    let i=0;
+    const showNext=()=>{
+      if(i>=bootLines.length){
+        startButton.disabled=false;
+        startButton.style.opacity='1';
+        startButton.style.cursor='pointer';
+        return;
+      }
+      const line=document.createElement('div');
+      line.textContent=bootLines[i++];
+      bootText.appendChild(line);
+      bootTimer=setTimeout(showNext,420);
+    };
+    showNext();
+  }
+
+  function finishLogin(username){
+    const u=cleanUsername(username);
+    if(!u){loginStatus.textContent='> ENTER A VALID X USERNAME';return false;}
+    currentPlayer=u;
+    localStorage.setItem('arcscII_player',u);
+    loginStatus.textContent='> AUTHENTICATED: @'+u;
+    setTimeout(()=>{
+      loginOverlay.style.display='none';
+      startScreen.style.display='flex';
+      runBootSequence();
+    },250);
+    return true;
+  }
+
+  if(currentPlayer){
+    usernameInput.value='@'+currentPlayer;
+    loginStatus.textContent='> SAVED PLAYER: @'+currentPlayer;
+  }
+
+  demoLoginButton.onclick=()=>finishLogin(usernameInput.value);
+  usernameInput.addEventListener('keydown',e=>{if(e.key==='Enter')demoLoginButton.click()});
+
+  const canvas = document.getElementById('arcGameMatrix');
+  const ctx = canvas.getContext('2d');
+
+  function resizeMatrix(){
+    canvas.width = innerWidth;
+    canvas.height = innerHeight;
+  }
+  resizeMatrix();
+  addEventListener('resize', resizeMatrix);
+
+  const chars = '01ABCDEFGHIJKLMNOPQRSTUVWXYZ$ARCSCII#@%&';
+  let drops = [];
+  function resetDrops(){
+    const cols = Math.floor(innerWidth / 16);
+    drops = Array.from({length:cols},()=>Math.random()*-50);
+  }
+  resetDrops();
+  addEventListener('resize', resetDrops);
+
+  function matrix(){
+    ctx.fillStyle='rgba(0,0,0,.09)';
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+    ctx.fillStyle='#2F4D6F';
+    ctx.font='16px VT323';
+    for(let i=0;i<drops.length;i++){
+      const ch=chars[Math.floor(Math.random()*chars.length)];
+      ctx.fillText(ch,i*16,drops[i]*16);
+      if(drops[i]*16>canvas.height && Math.random()>.975) drops[i]=0;
+      drops[i]+=.65;
+    }
+    requestAnimationFrame(matrix);
+  }
+  matrix();
+
+  const world = document.getElementById('arcGameWorld');
+  const player = document.getElementById('arcGamePlayer');
+  const scoreEl = document.getElementById('arcGameScore');
+  const bestEl = document.getElementById('arcGameBest');
+  const speedEl = document.getElementById('arcGameSpeed');
+  const levelEl = document.getElementById('arcGameLevel');
+  const startScreen = document.getElementById('arcGameStart');
+  const bootText = document.getElementById('arcBootText');
+  const startButton = document.getElementById('arcStartButton');
+  const gameOver = document.getElementById('arcGameOver');
+  const finalScore = document.getElementById('arcFinalScore');
+  const finalBest = document.getElementById('arcFinalBest');
+  const chooseScreen = document.getElementById('arcGameChoose');
+  const characterGrid = document.getElementById('arcCharacterGrid');
+  const chooseRunButton = document.getElementById('arcChooseRunButton');
+  const changeCharacterButton = document.getElementById('arcChangeCharacterButton');
+
+  // SOUND EFFECTS
+  // Keep these files next to the game using the exact paths below.
+  const sfx = {
+    start: new Audio('sounds/start.mp3'),
+  enterterminal: new Audio('sounds/enterterminal.mp3'),
+    select: new Audio('sounds/select.mp3'),
+    coin: new Audio('sounds/coin.mp3'),
+    danger: new Audio('sounds/danger.mp3'),
+    jump: new Audio('sounds/jump.mp3'),
+    jumping: new Audio('sounds/jumping.mp3'),
+    music: new Audio('sounds/music.mp3'),
+    small: new Audio('sounds/small.mp3'),
+    gameover: new Audio('sounds/gameover.mp3'),
+    startrun: new Audio('sounds/startrun.mp3'),
+    runagain: new Audio('sounds/runagain.mp3'),
+    change: new Audio('sounds/change.mp3')
+  };
+
+  Object.values(sfx).forEach(audio=>{
+    audio.preload='auto';
+    audio.volume=.8;
+  });
+  sfx.music.loop=true;
+  sfx.music.volume=.45;
+
+  function playSfx(name){
+    const audio=sfx[name];
+    if(!audio)return;
+    try{
+      audio.pause();
+      audio.currentTime=0;
+      const promise=audio.play();
+      if(promise && promise.catch) promise.catch(()=>{});
+    }catch(err){}
+  }
+
+  const characters = [
+    {id:"red", name:"REX-01", color:"RED", cls:"char-red", shape:"  /\\\\\n /##\\\\\n|====|\n| || |\n \\__/"},
+    {id:"white", name:"NULL", color:"WHITE", cls:"char-white", shape:"  .--.\n / __ \\\n| (  ) |\n|  \\/  |\n \\____/"},
+    {id:"pink", name:"MEOWTRIX", color:"PINK", cls:"char-pink", shape:"  /\\_/\\\n ( o.o )\n  > ^ <\n /|___|\\\n  /   \\"},
+    {id:"green", name:"SYNTAX", color:"GREEN", cls:"char-green", shape:"  .----.\n /|_()_|\\\n|  /\\  |\n| /__\\ |\n \\____/"},
+    {id:"yellow", name:"GOLDEN BYTE", color:"YELLOW", cls:"char-yellow", shape:"   /\\\n  /==\\\n | () |\n |/__\\|\n  /  \\"}
+  ];
+  let selectedCharacter = characters[0];
+  let selectedCharacterIndex = 0;
+
+  function selectCharacter(index, scrollIntoView=true, playSound=true){
+    const previousIndex=selectedCharacterIndex;
+    selectedCharacterIndex = (index + characters.length) % characters.length;
+    selectedCharacter = characters[selectedCharacterIndex];
+    if(playSound && selectedCharacterIndex!==previousIndex) playSfx('select');
+    characterGrid.querySelectorAll('.arcCharacterOption').forEach((btn,i)=>{
+      btn.classList.toggle('selected', i===selectedCharacterIndex);
+      if(i===selectedCharacterIndex && scrollIntoView){
+        btn.scrollIntoView({behavior:'smooth',block:'nearest',inline:'nearest'});
+      }
+    });
+    applyCharacter();
+  }
+
+  function renderCharacterChoices(){
+    characterGrid.innerHTML = characters.map((c,i)=>`<button type="button" class="arcCharacterOption ${i===selectedCharacterIndex?'selected':''}" data-char="${c.id}">
+      <pre class="arcCharacterPreview ${c.cls}">${c.shape}</pre>
+      <div class="arcCharacterName ${c.cls}">${c.name}</div>
+    </button>`).join('');
+    characterGrid.querySelectorAll('.arcCharacterOption').forEach((btn,i)=>{
+      btn.addEventListener('click',()=>{
+        selectCharacter(i, false);
+      });
+    });
+  }
+
+  function applyCharacter(){
+    player.textContent=selectedCharacter.shape;
+    player.classList.remove('char-red','char-white','char-pink','char-green','char-yellow');
+    player.classList.add(selectedCharacter.cls);
+  }
+  renderCharacterChoices();
+  applyCharacter();
+
+  let best = Number(localStorage.getItem('arcscII_terminal_best') || 0);
+  bestEl.textContent = String(best).padStart(6,'0');
+
+  let running=false, last=0, score=0, speed=360, elapsed=0;
+  let playerX=90, playerY=0, velocityY=0, crouching=false;
+  let obstacles=[], coins=[], jumpAids=[], spawnTimer=0, coinTimer=0, jumpAidTimer=2.5;
+  const gravity=1800;
+  const groundY=62;
+  const playerW=58, playerH=70;
+
+  function resetGame(){
+    applyCharacter();
+    running=true; last=performance.now(); score=0; speed=360; elapsed=0;
+    playerX=90; playerY=0; velocityY=0; crouching=false;
+    obstacles=[]; coins=[]; jumpAids=[]; spawnTimer=.8; coinTimer=1.2; jumpAidTimer=2.5;
+    scoreEl.textContent='000000';
+    speedEl.textContent='1.0';
+    startScreen.style.display='none';
+    chooseScreen.style.display='none';
+    gameOver.style.display='none';
+    world.querySelectorAll('.arcGameObstacle,.arcGameCoin,.arcGameJumpAid').forEach(e=>e.remove());
+    try{
+      sfx.music.currentTime=0;
+      const musicPromise=sfx.music.play();
+      if(musicPromise && musicPromise.catch) musicPromise.catch(()=>{});
+    }catch(err){}
+    requestAnimationFrame(loop);
+  }
+
+  // Red ASCII spikes. Difficulty gradually increases:
+  // EASY = ✶ (few single spikes)
+  // MEDIUM = ✷ (more spikes, occasional 2-stack)
+  // HARD = ♦ (many spikes, frequent multi-stack)
+  function spawnObstacle(){
+    const difficulty = elapsed < 30 ? 'easy' : (elapsed < 75 ? 'medium' : 'hard');
+
+    let pattern;
+    if(difficulty === 'easy'){
+      pattern = Math.random() < .75 ? '✶' : '✶✶';
+    }else if(difficulty === 'medium'){
+      pattern = Math.random() < .55 ? '✷✷' : '✷';
+    }else{
+      const count = 2 + Math.floor(Math.random()*3);
+      pattern = '♦'.repeat(count);
+    }
+
+    /*
+      RED SPIKE HEIGHTS:
+      1 = FLOOR    -> jump over it
+      2 = MIDDLE   -> higher jump needed
+      3 = HIGH     -> crouch/duck underneath it
+
+      The high position is deliberately placed across the player's
+      head area. Holding ArrowDown makes the player flatten against
+      the floor, so the hitbox becomes short enough to pass underneath.
+    */
+    const roll = Math.random();
+    let position, bottom;
+    if(roll < .48){
+      position = 'floor';
+      bottom = 62;
+    }else if(roll < .78){
+      position = 'middle';
+      bottom = 92;
+    }else{
+      position = 'high';
+      bottom = 124;
+    }
+
+    const el=document.createElement('pre');
+    el.className='arcGameObstacle';
+    el.textContent=pattern;
+    el.dataset.position=position;
+    world.appendChild(el);
+
+    const width = pattern.length * 32;
+    const height = 38;
+    el.style.bottom=bottom+'px';
+
+    obstacles.push({
+      el,
+      x:world.clientWidth+30,
+      w:width,
+      h:height,
+      position
+    });
+  }
+
+  function spawnJumpAid(){
+    const el=document.createElement('pre');
+    el.className='arcGameJumpAid';
+
+    // GREEN JUMP LEVELS:
+    // ▂▃ = not too high
+    // ▅▆ = fairly high
+    // ▇▉ = very high
+    const levels = [
+      {shape:'▂▃', boost:700, width:42},
+      {shape:'▅▆', boost:920, width:42},
+      {shape:'▇▉', boost:1150, width:42}
+    ];
+    const level = levels[Math.floor(Math.random()*levels.length)];
+
+    el.textContent=level.shape;
+    el.style.width=level.width+'px';
+    world.appendChild(el);
+
+    const y=62;
+    el.style.bottom=y+'px';
+    return {el,x:world.clientWidth+30,w:level.width,h:35,boost:level.boost};
+  }
+
+  function spawnCoin(){
+    const el=document.createElement('div');
+    el.className='arcGameCoin';
+    el.textContent='$';
+    world.appendChild(el);
+    const y=100+Math.random()*130;
+    el.style.bottom=y+'px';
+    coins.push({el,x:world.clientWidth+30,y,w:26,h:35});
+  }
+
+  function jump(){
+    if(!running)return;
+    if(playerY<=1){
+      velocityY=700;
+      playerY=2;
+      playSfx('jump');
+    }
+  }
+
+  function move(dir){
+    if(!running)return;
+    playerX += dir*70;
+    playerX=Math.max(10,Math.min(world.clientWidth-100,playerX));
+  }
+
+  // Collision is calculated from the actual on-screen element bounds.
+  // This keeps the red hazards deadly even when they are moved with CSS transforms.
+  function elementsCollide(el1, el2){
+    const a = el1.getBoundingClientRect();
+    const b = el2.getBoundingClientRect();
+    const padding = 5;
+    return (
+      a.left + padding < b.right - padding &&
+      a.right - padding > b.left + padding &&
+      a.top + padding < b.bottom - padding &&
+      a.bottom - padding > b.top + padding
+    );
+  }
+
+  function endGame(){
+    if(!running)return;
+    running=false;
+    try{ sfx.music.pause(); }catch(err){}
+    playSfx('danger');
+    setTimeout(()=>playSfx('gameover'),120);
+    if(score>best){
+      best=score;
+      localStorage.setItem('arcscII_terminal_best',best);
+    }
+    bestEl.textContent=String(best).padStart(6,'0');
+    finalScore.textContent=score;
+    finalBest.textContent=best;
+    saveLeaderboard(score);
+    renderLeaderboard();
+    gameOver.style.display='flex';
+  }
+
+  function loop(t){
+    if(!running)return;
+    const dt=Math.min((t-last)/1000,.035);
+    last=t; elapsed+=dt;
+
+    speed=360 + Math.min(420,elapsed*8);
+    speedEl.textContent=(speed/360).toFixed(1);
+    if(levelEl){
+      levelEl.textContent = elapsed < 30 ? 'EASY' : (elapsed < 75 ? 'MEDIUM' : 'HARD');
+    }
+
+    velocityY-=gravity*dt;
+    playerY+=velocityY*dt;
+    if(playerY<0){playerY=0;velocityY=0}
+
+    player.style.left=playerX+'px';
+    player.style.bottom=(groundY+playerY)+'px';
+    player.classList.toggle('crouching',crouching);
+
+    spawnTimer-=dt;
+    coinTimer-=dt;
+    jumpAidTimer-=dt;
+
+    if(spawnTimer<=0){
+      spawnObstacle();
+      spawnTimer=1.35+Math.random()*1.15-Math.min(.35,elapsed*.002);
+    }
+    if(coinTimer<=0){
+      spawnCoin();
+      coinTimer=1.0+Math.random()*1.5;
+    }
+
+    if(jumpAidTimer<=0){
+      jumpAids.push(spawnJumpAid());
+      jumpAidTimer=4.0+Math.random()*3.0;
+    }
+
+    obstacles.forEach(o=>{
+      o.x-=speed*dt;
+      o.el.style.transform=`translateX(${o.x}px)`;
+
+      // RED HAZARDS = instant game over on contact.
+      if(running && elementsCollide(player, o.el)){
+        endGame();
+      }
+    });
+
+    coins.forEach(c=>{
+      c.x-=speed*dt;
+      c.el.style.transform=`translateX(${c.x}px)`;
+
+      // GOLD $ COINS = collectible points.
+      if(!c.collected && elementsCollide(player, c.el)){
+        score+=100;
+        c.collected=true;
+        playSfx('coin');
+        c.el.remove();
+      }
+    });
+
+    jumpAids.forEach(a=>{
+      a.x-=speed*dt;
+      a.el.style.transform=`translateX(${a.x}px)`;
+
+      // GREEN OBJECT = jump assistance.
+      // Play the special high-jump SFX only when the player touches a green aid.
+      if(!a.collected && elementsCollide(player, a.el)){
+        velocityY=a.boost;
+        playerY=Math.max(playerY,4);
+        a.collected=true;
+        playSfx('jumping');
+        a.el.remove();
+      }
+    });
+
+    obstacles=obstacles.filter(o=>{
+      if(o.x<-140){o.el.remove();return false}
+      return true;
+    });
+    coins=coins.filter(c=>!c.collected && c.x>-80);
+    jumpAids=jumpAids.filter(a=>!a.collected && a.x>-100);
+
+    score += Math.floor(dt*60);
+    scoreEl.textContent=String(score).padStart(6,'0');
+
+    if(running) requestAnimationFrame(loop);
+  }
+
+  function openCharacterSelect(){
+    running=false;
+    gameOver.style.display='none';
+    startScreen.style.display='none';
+    chooseScreen.style.display='flex';
+    selectCharacter(selectedCharacterIndex, false);
+  }
+
+  document.getElementById('arcStartButton').onclick=()=>{
+    playSfx('start');
+    startScreen.style.display='none';
+    chooseScreen.style.display='flex';
+    selectCharacter(selectedCharacterIndex, false);
+  };
+  chooseRunButton.onclick=()=>{
+    playSfx('startrun');
+    resetGame();
+  };
+  document.getElementById('arcRestartButton').onclick=()=>{
+    playSfx('runagain');
+    resetGame();
+  };
+  if(changeCharacterButton) changeCharacterButton.onclick=()=>{
+    playSfx('change');
+    openCharacterSelect();
+  };
+
+  const quitButton = document.getElementById('arcQuitButton');
+  if(quitButton) quitButton.onclick=()=>{
+    running=false;
+    gameOver.style.display='none';
+    chooseScreen.style.display='none';
+    startScreen.style.display='none';
+    loginOverlay.style.display='flex';
+    loginStatus.textContent=currentPlayer ? '> SAVED PLAYER: @'+currentPlayer : '';
+    try{ sfx.music.pause(); sfx.music.currentTime=0; }catch(err){}
+    setTimeout(()=>{ try{ usernameInput.focus(); usernameInput.select(); }catch(err){} },50);
+  };
+
+  const tweetResultButton = document.getElementById('arcTweetResultButton');
+  if(tweetResultButton) tweetResultButton.onclick=()=>{
+    const tweetText = `I just earned ${Number(score||0).toLocaleString()} points on ARCSCII TERMINAL RUN! 🚀\n\nJoin ARCSCII and collect as many points as you can!\n\nVisit https://arcscii.space and follow @ARCSCII`;
+    const tweetUrl = 'https://twitter.com/intent/tweet?text=' + encodeURIComponent(tweetText);
+    window.open(tweetUrl, '_blank', 'noopener,noreferrer');
+  };
+
+  addEventListener('keydown',e=>{
+    const choosing = chooseScreen.style.display==='flex';
+    if(choosing){
+      if(['ArrowLeft','ArrowRight','Enter','Space'].includes(e.code)) e.preventDefault();
+      if(e.code==='ArrowLeft') selectCharacter(selectedCharacterIndex-1);
+      if(e.code==='ArrowRight') selectCharacter(selectedCharacterIndex+1);
+      if(e.code==='Enter'||e.code==='Space') chooseRunButton.click();
+      return;
+    }
+
+    if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code))e.preventDefault();
+    if(e.code==='Space'||e.code==='ArrowUp')jump();
+    if(e.code==='ArrowDown'){
+      if(!crouching && running) playSfx('small');
+      crouching=true;
+    }
+    if(e.code==='ArrowLeft')move(-1);
+    if(e.code==='ArrowRight')move(1);
+    if((e.code==='Enter') && !running) resetGame();
+  });
+
+  addEventListener('keyup',e=>{
+    if(e.code==='ArrowDown'){
+      e.preventDefault();
+      crouching=false;
+    }
+  });
+
+  document.getElementById('arcJump').onclick=jump;
+  document.getElementById('arcLeft').onclick=()=>move(-1);
+  document.getElementById('arcRight').onclick=()=>move(1);
+
+  // MOBILE: no on-screen controls during gameplay.
+  // Swipe up = jump, swipe down = crouch.
+  const gameCanvas = document.getElementById('arcGameCanvas');
+  let touchStartX=0, touchStartY=0, touchStartTime=0, touchCrouchTimer=null;
+  if(gameCanvas){
+    gameCanvas.addEventListener('touchstart', e=>{
+      if(!running) return;
+      const t=e.changedTouches[0]; touchStartX=t.clientX; touchStartY=t.clientY; touchStartTime=Date.now();
+    }, {passive:true});
+    gameCanvas.addEventListener('touchend', e=>{
+      if(!running) return;
+      const t=e.changedTouches[0]; const dx=t.clientX-touchStartX; const dy=t.clientY-touchStartY;
+      const distance=Math.hypot(dx,dy); const duration=Date.now()-touchStartTime;
+      if(distance<35 || duration>800) return;
+      if(Math.abs(dx)>Math.abs(dy)){
+        if(dx < -35) move(-1);
+        else if(dx > 35) move(1);
+      }else{
+        if(dy < -35) jump();
+        else if(dy > 35){
+          if(touchCrouchTimer) clearTimeout(touchCrouchTimer);
+          crouching=true; playSfx('small');
+          touchCrouchTimer=setTimeout(()=>{crouching=false; touchCrouchTimer=null;},420);
+        }
+      }
+    }, {passive:true});
+  }
+})();
+</script>
+
+<script id="arcUsernameIdentityHook">
+(function(){
+  const ids = ['arcUsernameInput','usernameInput','playerUsernameInput'];
+  const input = ids.map(id => document.getElementById(id)).find(Boolean);
+  if(!input) return;
+
+  const saved = localStorage.getItem('arcscII_username');
+  if(saved) input.value = saved;
+
+  input.addEventListener('change', function(){
+    const name = arcDisplayUsername(input.value);
+    if(name && name !== 'PLAYER'){
+      localStorage.setItem('arcscII_username', name);
+    }
+  });
+})();
+</script>
+
+
+<script id="arcMigrateOldLeaderboard">
+(function(){
+  try{
+    const oldRaw = localStorage.getItem('arcscII_leaderboard');
+    if(!oldRaw) return;
+    const old = JSON.parse(oldRaw);
+    const data = arcGetPointData();
+
+    Object.values(old || {}).forEach(p=>{
+      const username = arcDisplayUsername(p.username);
+      const key = arcNormalizeUsername(username);
+      if(!key) return;
+      if(!data[key]){
+        data[key] = {
+          username,
+          totalPoints: Number(p.points || p.totalPoints || p.score || 0),
+          bestRun: Number(p.best || p.bestRun || p.score || 0),
+          gamesPlayed: Number(p.gamesPlayed || 1),
+          verified: false
+        };
+      }
+    });
+
+    arcSavePointData(data);
+  }catch(e){}
+})();
+</script>
+
+
+<script id="arcPermanentLeaderboardRender">
+function renderPermanentLeaderboard(targetId='leaderboard'){
+  const el = document.getElementById(targetId);
+  if(!el) return;
+  const rows = arcGetPermanentLeaderboard();
+
+  if(!rows.length){
+    el.innerHTML = '<div class="leaderboardRow"><span>#1</span><span>NO PLAYERS YET</span><strong>0</strong></div>';
+    return;
+  }
+
+  el.innerHTML = rows.slice(0,50).map((p,i)=>`
+    <div class="leaderboardRow">
+      <span>#${i+1}</span>
+      <span>@${String(p.username).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}</span>
+      <strong>${arcFormatPoints(p.totalPoints)}</strong>
+    </div>
+  `).join('');
+}
+</script>
+
+<script id="arcEnterTerminalSoundHook">
+(function(){
+  document.addEventListener('click', function(e){
+    const target=e.target.closest('button,a,[role="button"]');
+    if(!target)return;
+    const text=(target.textContent||'').trim().replace(/\s+/g,' ').toUpperCase();
+    if(text.includes('ENTER TERMINAL')){
+      const audio=(typeof sfx!=='undefined'&&sfx.enterterminal)?sfx.enterterminal:new Audio('sounds/enterterminal.mp3');
+      try{audio.pause();audio.currentTime=0;const p=audio.play();if(p&&p.catch)p.catch(()=>{});}catch(err){}
+    }
+  },true);
+})();
+</script>
+</body>
+</html>
