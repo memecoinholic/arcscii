@@ -317,7 +317,7 @@ window.arcFirebase={db,doc,getDoc,setDoc,query,collection,orderBy,limit,onSnapsh
     <button class="arcGameButton" id="arcDemoLoginButton">[ ENTER TERMINAL ]</button>
 
     <div class="arcLoginSocials" aria-label="ARCSCII links">
-      <a href="https://x.com/arcscii" target="_blank" rel="noopener noreferrer" aria-label="ARCSCII on X" title="X / Twitter">
+      <a href="https://x.com/arcsciispace" target="_blank" rel="noopener noreferrer" aria-label="ARCSCII on X" title="X / Twitter">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.244 2H21.5l-7.11 8.126L22.75 22h-6.6l-5.17-6.76L5.06 22H1.8l7.61-8.7L1.25 2H8l4.67 6.17L18.244 2Zm-1.155 17.52h1.8L7.01 4.36H5.08L17.09 19.52Z"/></svg>
       </a>
       <a href="https://blog.arcscii.space" target="_blank" rel="noopener noreferrer" aria-label="ARCSCII website" title="ARCSCII Website">
@@ -327,7 +327,7 @@ window.arcFirebase={db,doc,getDoc,setDoc,query,collection,orderBy,limit,onSnapsh
 
     <div class="arcLoginNote">
       Use your X / Twitter username so other players can recognize you on the leaderboard.<br>
-      Example: <b>@ARCSCII</b> → enter <b>ARCSCII</b><br>
+      Example: <b>@ARCSCIISPACE</b> → enter <b>ARCSCIISPACE</b><br>
       Username is self-reported and is not verified by X.
     </div>
   </div>
@@ -977,7 +977,7 @@ window.arcFirebase={db,doc,getDoc,setDoc,query,collection,orderBy,limit,onSnapsh
 
   const tweetResultButton = document.getElementById('arcTweetResultButton');
   if(tweetResultButton) tweetResultButton.onclick=()=>{
-    const tweetText = `I just earned ${Number(score||0).toLocaleString()} points on ARCSCII TERMINAL RUN! 🚀\n\nJoin ARCSCII and collect as many points as you can!\n\nVisit https://arcscii.space and follow @ARCSCII`;
+    const tweetText = `I just earned ${Number(score||0).toLocaleString()} points on ARCSCII TERMINAL RUN! 🚀\n\nJoin ARCSCII and collect as many points as you can!\n\nVisit https://arcscii.space and follow @ARCSCIISPACE`;
     const tweetUrl = 'https://twitter.com/intent/tweet?text=' + encodeURIComponent(tweetText);
     window.open(tweetUrl, '_blank', 'noopener,noreferrer');
   };
