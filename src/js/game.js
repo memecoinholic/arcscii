@@ -555,7 +555,7 @@ if(quitButton) quitButton.onclick=()=>{
 
 const tweetResultButton = document.getElementById('arcTweetResultButton');
 if(tweetResultButton) tweetResultButton.onclick=()=>{
-  const tweetText = `I just earned ${Number(score||0).toLocaleString()} points on ARCSCII TERMINAL RUN! 🚀\n\nJoin ARCSCII and collect as many points as you can!\n\nVisit https://arcscii.space and follow @ARCSCII`;
+  const tweetText = `I just earned ${Number(score||0).toLocaleString()} points on ARCSCII TERMINAL RUN! 🚀\n\nJoin ARCSCII and collect as many points as you can!\n\nVisit https://arcscii.space and follow @ARCSCIISPACE`;
   const tweetUrl = 'https://twitter.com/intent/tweet?text=' + encodeURIComponent(tweetText);
   window.open(tweetUrl, '_blank', 'noopener,noreferrer');
 };
