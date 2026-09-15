@@ -4,8 +4,12 @@
   "outputDirectory": "dist",
   "rewrites": [
     {
-      "source": "/((?!api/|assets/|(\\w+\\.[\\w]+)).*)",
-      "destination": "/index.html"
+      "afterFiles": [
+        {
+          "source": "/(.*)",
+          "destination": "/index.html"
+        }
+      ]
     }
   ],
   "headers": [
